@@ -2231,9 +2231,12 @@ fn build_text_content_by_letter(
     // Join front matter with pagebreaks
     let fm_body = front_matter_sections.join("<mbp:pagebreak/>");
 
-    // Join dictionary sections with pagebreaks, wrapped in <mbp:frameset> if the
-    // source dictionary HTML used one (required for Kindle dictionary rendering)
-    let dict_body = dict_sections.join("<mbp:pagebreak/>");
+    // Every section already ends with the page break strip_idx_markup writes
+    // after its last entry, so the sections are concatenated as they are; a
+    // join separator would put two breaks in a row at every 30 MB seam. The
+    // result is wrapped in <mbp:frameset> if the source dictionary HTML used
+    // one (required for Kindle dictionary rendering).
+    let dict_body = dict_sections.concat();
     let dict_body = if has_frameset {
         format!("<mbp:frameset>{}</mbp:frameset>", dict_body)
     } else {
@@ -3191,6 +3194,27 @@ mod record_split_tests {
             assert!(
                 out[i + 5..].starts_with("<mbp:pagebreak/>"),
                 "bare <hr/> separator at byte {i}: {out}"
+            );
+        }
+    }
+
+    #[test]
+    fn entry_boundary_accepts_padded_hr_pagebreak_junction() {
+        // A headword now follows <hr/><mbp:pagebreak/> rather than a bare
+        // <hr/>, and pad_text_for_chunking can leave a run of spaces between
+        // the page break and the headword when a record ends there. Both
+        // shapes must count as an entry boundary; a <b> inside a paragraph
+        // must not.
+        let filler = "<p>x</p>".repeat(40);
+        let tight = format!("{filler}<hr/><mbp:pagebreak/><b>next</b>");
+        let padded = format!("{filler}<hr/><mbp:pagebreak/>        <b>next</b>");
+        let inline = format!("{filler}<p>see <b>next</b></p>");
+        for (text, expect) in [(&tight, true), (&padded, true), (&inline, false)] {
+            let at = text.rfind("<b>").unwrap();
+            assert_eq!(
+                is_entry_boundary(text.as_bytes(), at),
+                expect,
+                "is_entry_boundary at byte {at} of {text:?}"
             );
         }
     }

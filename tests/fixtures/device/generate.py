@@ -16,7 +16,7 @@ several chapters of real text.
 Every dictionary declares en -> en and the probe book is tagged `en`, because
 the lookup popup's dictionary picker only lists dictionaries whose input
 language matches the book's language tag. That is what makes one probe book able
-to drive all five dictionaries.
+to drive every dictionary in the round.
 
 Usage:
     python3 generate.py [--kindling PATH] [--out DIR]

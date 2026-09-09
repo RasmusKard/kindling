@@ -170,8 +170,15 @@ fn load_reference(fixture: &str) -> ParsedMobi {
 /// Build a fixture with `kindling-cli build` into a scratch tempdir and
 /// return the parsed output. Used for dict and book fixtures.
 fn kindling_build_parsed(fixture: &str, opf_name: &str, ext: &str) -> ParsedMobi {
+    kindling_build_parsed_in("kindling_parity", fixture, opf_name, ext)
+}
+
+/// Same, under a caller-chosen tempdir root. Tests run in parallel and each
+/// build wipes its directory first, so two tests building the same fixture
+/// must not share one.
+fn kindling_build_parsed_in(root: &str, fixture: &str, opf_name: &str, ext: &str) -> ParsedMobi {
     let opf = parity_fixture(fixture).join(opf_name);
-    let tmp = std::env::temp_dir().join("kindling_parity").join(fixture);
+    let tmp = std::env::temp_dir().join(root).join(fixture);
     let _ = fs::remove_dir_all(&tmp);
     fs::create_dir_all(&tmp).unwrap();
     let out = tmp.join(format!("out.{ext}"));
@@ -281,7 +288,12 @@ fn parity_simple_dict() {
 /// divergence was invisible.
 #[test]
 fn parity_simple_dict_inter_entry_pagebreaks() {
-    let kindling = kindling_build_parsed("simple_dict", "simple_dict.opf", "mobi");
+    let kindling = kindling_build_parsed_in(
+        "kindling_parity_text",
+        "simple_dict",
+        "simple_dict.opf",
+        "mobi",
+    );
     let kindlegen = load_reference("simple_dict");
 
     let k_text = extract_text_blob(&kindling, &kindling.kf7);
@@ -295,11 +307,14 @@ fn parity_simple_dict_inter_entry_pagebreaks() {
 
     let mut diff = Diff::default();
 
-    // 5-entry fixture: kindlegen breaks at all 4 inter-entry boundaries (plus
-    // whatever it emits after the last entry).
+    // The simple_dict source carries <mbp:pagebreak/> after each of its 5
+    // entries and kindlegen keeps them (plus its own trailing one), so fewer
+    // than 4 in the reference means the source or the reference changed.
     if g_breaks < 4 {
         diff.push(format!(
-            "kindlegen reference lost its page breaks ({g_breaks} < 4); regenerate the fixture"
+            "kindlegen reference has only {g_breaks} page breaks (< 4): \
+             tests/fixtures/parity/simple_dict/content.html lost its inter-entry \
+             <mbp:pagebreak/> lines; regenerate both"
         ));
     }
     if k_breaks < k_hrs {
@@ -309,14 +324,36 @@ fn parity_simple_dict_inter_entry_pagebreaks() {
              into the next entry on device"
         ));
     }
+    // One page break per entry plus the one the body tail always carries.
+    // kindling's count is not compared to kindlegen's, because kindlegen only
+    // keeps the source's breaks and this fixture happens to carry them.
+    if k_breaks != k_hrs + 1 {
+        diff.push(format!(
+            "kindling emits {k_breaks} page breaks for {k_hrs} entries; expected one \
+             per entry plus the body tail"
+        ));
+    }
+    // Every <hr/> must be followed by <mbp:pagebreak/>. Spaces in between are
+    // allowed: pad_text_for_chunking fills the last gap between two tags of a
+    // record with spaces, and on a multi-record build that gap can be this
+    // one. An <hr/> directly followed by another <hr/> is an entry's own rule
+    // before the separator, and the separator is judged on its own.
     let mut bare = 0;
-    for i in 0..k_text.len().saturating_sub(20) {
-        if &k_text[i..i + 5] == b"<hr/>" && &k_text[i + 5..i + 21] != b"<mbp:pagebreak/>" {
+    let mut pos = 0;
+    while let Some(off) = k_text[pos..].windows(5).position(|w| w == b"<hr/>") {
+        let hr = pos + off;
+        let mut after = hr + 5;
+        while k_text.get(after) == Some(&b' ') {
+            after += 1;
+        }
+        let rest = &k_text[after..];
+        if !rest.starts_with(b"<mbp:pagebreak/>") && !rest.starts_with(b"<hr/>") {
             bare += 1;
             if bare <= 3 {
-                diff.push(format!("bare <hr/> separator at byte {i}"));
+                diff.push(format!("bare <hr/> separator at byte {hr}"));
             }
         }
+        pos = hr + 5;
     }
     if bare > 3 {
         diff.push(format!("...and {} more bare <hr/> separators", bare - 3));
