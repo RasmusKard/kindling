@@ -273,10 +273,12 @@ fn parity_simple_dict() {
     }
 }
 
-/// The popup ends its page box only at `<mbp:pagebreak/>`, so a bare `<hr/>`
-/// separator lets it scroll into the next entry. The tests above compare
-/// metadata only; this one watches the text — every `<hr/>` must be followed
-/// by a page break, as kindlegen's per-entry breaks are.
+/// Every `<hr/>` separator must be followed by `<mbp:pagebreak/>`: a bare rule
+/// lets the lookup popup scroll into the next entry (PR #52). The simple_dict
+/// source carries a page break after each entry, which kindlegen keeps and
+/// kindling used to drop along with everything else outside `<idx:entry>`
+/// (issue #42). The tests above compare metadata only, which is why this
+/// divergence was invisible.
 #[test]
 fn parity_simple_dict_inter_entry_pagebreaks() {
     let kindling = kindling_build_parsed("simple_dict", "simple_dict.opf", "mobi");

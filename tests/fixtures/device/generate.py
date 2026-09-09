@@ -417,7 +417,7 @@ def build_dict_e(root):
 def build_dict_f(root):
     """Popup scroll-through check for the <hr/> -> <hr/><mbp:pagebreak/> fix.
 
-    The first entry is long enough to force scrolling, and the neighbour's
+    The first entry is long enough to force scrolling, and the neighbor's
     bold headword is the first thing after the separator — exactly the reach
     a bare <hr/> boundary gives the popup, so the check fails pre-fix.
     """
@@ -542,7 +542,7 @@ def probe_book(root):
         "<h1>Kindling device probe</h1>",
         "<p>Tap a word below, then use the dictionary name at the bottom of the popup "
         "to switch dictionaries. Every test dictionary here is English to English, so "
-        "all five appear in that list.</p>",
+        "all six appear in that list.</p>",
         section(1, "1. Style, in all four dictionaries (issues 39 and 40)",
                 "Look up zstyle, then run it through KD-A, KD-B, KD-C and KD-D in turn. "
                 "In each one, UNDER and ITAL must both be much larger than the word plain. "
@@ -562,7 +562,13 @@ def probe_book(root):
                 "Switch to KD-E first. Each of these must show its numbered body text. "
                 "A popup that opens but is blank is the bug.",
                 NOLIMIT_WORDS),
-        "<h2>5. Controls</h2><p>These are ordinary entries in every dictionary. If they "
+        section(5, "5. Popup boundary, in KD-F (pull request 52)",
+                "Switch to KD-F. Look up zbleedfirst and scroll the popup to its very "
+                "bottom. The LAST LINE paragraph must be the end of the popup. Seeing "
+                "zbleedsecond, its bold headword, or anything else below that line is "
+                "the bug.",
+                ["zbleedfirst"], cols=1),
+        "<h2>6. Controls</h2><p>These are ordinary entries in every dictionary. If they "
         "fail too, something is wrong with the round rather than with the fix.</p>"
         "<table><tr>" + "".join(f"<td>{w}</td>" for w, _ in FILLER) + "</tr></table>",
     ]

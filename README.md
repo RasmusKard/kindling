@@ -123,6 +123,8 @@ A dictionary's CSS is picked up from every dictionary file, whether it sits in a
 
 An entry's headword may be an attribute (`<idx:orth value="word"/>`) or the element's own text (`<idx:orth>word</idx:orth>`), and the entry body may be shaped however you like. kindling locates each entry by the bytes it contributed to the text blob, so an entry whose body never repeats its own headword, or wraps it in `<p>`/`<h1>`/`<span>` rather than `<b>`, still gets a correct lookup span. Before 0.32.0 only `<b>`- or `<big>`-wrapped headwords at the very start of an entry were found; anything else was stored as a zero-length span and popped up blank on device, and each miss cost a scan of the whole blob, which made large builds quadratic (issue #27).
 
+Every entry closes with a horizontal rule, which the guidelines ask for, and a page break, which is what Amazon's own dictionaries put between entries. Without the page break the lookup popup can scroll past the end of the matched entry into the next one (pull request #52). kindling adds the page break itself, so a source whose entries are separated only by `<hr/>` (which is what PyGlossary writes) gets it too; kindlegen only keeps a page break the source already has.
+
 Headwords may be wrapped in either `<b>` or `<big>`. PyGlossary picks the wrapper by writing system and uses `<big>` for Hangul, CJK, Devanagari, Armenian, Bengali, Burmese and Greek, so dictionaries built through it (including reader.dict's) rely on the `<big>` path (issue #22).
 
 If an entry cannot be located in the text blob, its lookup resolves to a zero-length body and renders as a blank popup on device. kindling warns about this and still writes the dictionary. Set `KINDLING_STRICT_ENTRIES=1` to abort the build instead, which is the right setting for CI or any caller that checks exit codes. It is off by default because the wrappers most likely to hit this do not check exit codes, so aborting leaves them with no output file at all, which is a worse outcome than a dictionary with some blank entries. 0.29.0 briefly had this the other way round and regressed reader.dict from blank definitions to no working dictionary; 0.29.1 restored the warning.
@@ -652,11 +654,11 @@ KINDLING=./target/release/kindling-cli python3 tests/fixtures/device/generate.py
 cp tests/fixtures/device/build/ship/*.mobi /Volumes/Kindle/documents/
 ```
 
-It writes five dictionaries, five books, three comics and a probe book listing
+It writes six dictionaries, five books, three comics and a probe book listing
 every word to tap. Every dictionary declares `en` to `en` and the probe
 book is tagged `en`, because the lookup popup's picker only lists dictionaries
 whose input language matches the book's language tag; that is what lets one book
-drive all five. The output is gitignored and rebuilt from source each run.
+drive all six. The output is gitignored and rebuilt from source each run.
 
 These are deliberately not the repo's own fixtures. `clean_book` is a single
 432-byte page, so "it opens but won't turn pages" looks like a bug and is just a

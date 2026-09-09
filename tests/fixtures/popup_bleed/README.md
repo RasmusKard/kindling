@@ -3,7 +3,7 @@
 Minimal on-device demonstration for the lookup-popup entry-boundary fix.
 Five common English words; `house` has a multi-screen article so the popup
 must be scrolled, and `xylophone` — an entirely unrelated headword — is its
-physical neighbour in the single text record.
+physical neighbor in the single text record.
 
 Build the same source on `main` and on the fix branch:
 
@@ -25,10 +25,10 @@ On device, in any English book:
    own last line; scrolling cannot leave the entry, because the popup's page
    box ends at the `<mbp:pagebreak/>`.
 
-Geometry caveat (why `house` is long and the neighbour is unrelated): the
+Geometry caveat (why `house` is long and the neighbor is unrelated): the
 popup's reach past the span is small and line-wrap dependent, so the probe
-article must be long enough to force scrolling and the visible neighbour must
+article must be long enough to force scrolling and the visible neighbor must
 be unmistakably not-a-match (the original report was Estonian
-`patt` → `tarbeelektroonika`). If a given firmware shows only the neighbour's
+`patt` → `tarbeelektroonika`). If a given firmware shows only the neighbor's
 headword line, that is still the bug — one line of an unrelated entry is
 reachable at all.

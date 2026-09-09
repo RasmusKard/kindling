@@ -2588,13 +2588,21 @@ fn strip_idx_markup(html: &str) -> String {
         result = std::borrow::Cow::Owned(entry_open.replace_all(&result, "").to_string());
     }
     if result.contains("</idx:entry>") {
-        // End the entry with a real page break. The lookup popup's page box
-        // only closes at <mbp:pagebreak/> — a bare <hr/> is just a visual
-        // rule, so the popup can scroll into the next article. kindlegen
-        // breaks every entry boundary this way. The <hr/> scanners still
-        // match their token first, so spans and chunk alignment are unchanged.
+        // Close the entry with a horizontal rule and a page break. The rule is
+        // what the Kindle Publishing Guidelines ask for between entries, and
+        // entry_span / is_entry_boundary key on it. The page break is what
+        // Amazon's own dictionaries put between entries; without it the lookup
+        // popup can scroll past the end of the matched entry into the next one
+        // (PR #52). A source that already carries a page break after
+        // </idx:entry> loses it, because nothing outside <idx:entry> survives
+        // (issue #42), so it is added unconditionally here. kindlegen does not
+        // add one on its own, it only keeps the source's. The scanners that
+        // look for <hr/> match it before the page break, so entry spans and
+        // record chunking are unchanged.
         result = std::borrow::Cow::Owned(
-            entry_close.replace_all(&result, "<hr/><mbp:pagebreak/>").to_string(),
+            entry_close
+                .replace_all(&result, "<hr/><mbp:pagebreak/>")
+                .to_string(),
         );
     }
 
